@@ -4,11 +4,12 @@
 
 This project presents a comprehensive movie recommendation system and user segmentation analysis using the [MovieLens](https://grouplens.org/datasets/movielens/latest/) dataset. It was developed as a capstone project for NYU's **DSGA1004 - Big Data** course. The pipeline leverages PySpark, ALS, MinHashLSH, and modern evaluation metrics to address scalability and personalization in recommender systems.
 
-## Team 94 Members
+## Contributors
 
-- **Kyeongmo Kang** (`kk5739`)
-- **Alexander Pegot-Ogier** (`ap9283`)
-- **Nikolas Prasinos** (`np3106`)
+- **Kyeongmo Kang** 
+- **Nikolas Prasinos**
+- **Alexander Pegot-Ogier** 
+
 
 ## Project Structure
 
