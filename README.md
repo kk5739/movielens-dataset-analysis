@@ -132,9 +132,9 @@ python als_model.py
 
 ## Contributions
 
-- **Kyeongmo Kang**: Train/Val/Test splitting, full report structuring
-- **Alexander Pegot-Ogier**: MinHashLSH + Pearson correlation
-- **Nikolas Prasinos**: Popularity model + ALS recommender
+- **Kyeongmo Kang**
+- **Alexander Pegot-Ogier**
+- **Nikolas Prasinos**
 
 ## License
 
