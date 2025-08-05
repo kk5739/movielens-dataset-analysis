@@ -1,112 +1,146 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/eA6CnPBI)
-# DSGA1004 - BIG DATA
-## Capstone project
+# MovieLens Dataset Analysis: Recommender Systems & Segmentation
 
-*Handout date*: 2025-04-07
+## Overview
 
-*Checkpoint submission*: 2025-04-28
+This project presents a comprehensive movie recommendation system and user segmentation analysis using the [MovieLens](https://grouplens.org/datasets/movielens/latest/) dataset. It was developed as a capstone project for NYU's **DSGA1004 - Big Data** course. The pipeline leverages PySpark, ALS, MinHashLSH, and modern evaluation metrics to address scalability and personalization in recommender systems.
 
-*Project due date*: 2025-05-07
+## Team 94 Members
 
+- **Kyeongmo Kang** (`kk5739`)
+- **Alexander Pegot-Ogier** (`ap9283`)
+- **Nikolas Prasinos** (`np3106`)
 
-# Overview
+## Project Structure
 
-In the capstone project, you will apply the tools you have learned in this class to solve a realistic, large-scale applied problem.
-Specifically, you will use the movielens dataset to build and evaluate a collaborative-filter based recommender as well as a customer segmentation system. 
+```
+movielens-dataset-analysis/
+├── als_model.py               # Trains and evaluates ALS collaborative filtering model (Q5)
+├── customer_segmentation.py  # Finds similar users using MinHash LSH and validates with Pearson correlation (Q1, Q2)
+├── parquet_convertor.py      # Converts original MovieLens CSVs to optimized Parquet format
+├── popularity_model.py       # Implements popularity-based recommender system as baseline (Q4)
+├── split.py                  # Prepares training, validation, and test sets by timestamp (Q3)
+├── ml-latest-small/          # MovieLens small dataset (CSV files)
+├── results/                  # Top 100 user pairs, Q1/Q2 outputs
+├── Report.pdf                # Full technical and analytical write-up
+├── README.md                 # Project overview (this file)
+├── requirements.txt          # Project dependencies
+├── venv/                     # (Optional) Local virtual environment
+```
 
-In either case, you are encouraged to work in **groups of up to 4 students**:
+## Objectives
 
+- Identify "movie-twin" users with overlapping watch patterns using **MinHashLSH**
+- Validate similarities through **Pearson correlation** of ratings
+- Implement and benchmark a **popularity-based baseline recommender**
+- Build and tune a **Spark ALS model** for collaborative filtering
+- Evaluate all models using **Precision\@100**, **MAP\@100**, and **NDCG\@100**
 
-## The data set
+## Datasets
 
-In this project, we'll use the [MovieLens](https://grouplens.org/datasets/movielens/latest/) dataset provided by F. Maxwell Harper and Joseph A. Konstan. 2015. The MovieLens Datasets: History and Context. ACM Transactions on Interactive Intelligent Systems (TiiS) 5, 4: 19:1–19:19. https://doi.org/10.1145/2827872
+- Source: [MovieLens](https://grouplens.org/datasets/movielens/latest/)
+- Files used: `ratings.csv`, `movies.csv`, `tags.csv`, etc.
+- Transformed to Parquet format for optimized Spark performance
 
-We have prepared two versions of this dataset for you in Dataproc's HDFS: 
-A small dataset for prototyping is at /user/pw44_nyu_edu/ml-latest-small.zip (9000 movies, 600 users)
-The full dataset for scaling up is at /user/pw44_nyu_edu/ml-latest.zip (86000 movies and 330000 users)
+## Deliverables
 
-Each version of the data contains rating and tag interactions, and the larger sample includes "tag genome" data for each movie, which you may consider as additional features beyond
-the collaborative filter. Each version of the data includes a README.txt file which explains the contents and structure of the data which are stored in CSV files.
-We strongly recommend to thoroughly read through the dataset documentation before beginning, and make note of the documented differences between the smaller and larger datasets.
-Knowing these differences in advance will save you many headaches when it comes time to scale up.
-Note: In general, use the small dataset for prototyping, but answer the questions below by using the full dataset.
-Also note that these files are provided to you as zip files for ease - they both unzip as larger folders with many files. You should copy these files to your local hdfs and unzip them there by commands like these:
+### 1. Customer Segmentation via MinHashLSH
 
-hadoop fs -copyToLocal /user/pw44_nyu_edu/ml-latest.zip .
+- Converted ratings to sparse vectors
+- Used 5 hash tables, 2500+ rating filter
+- Identified top 100 most overlapping user pairs ("movie twins")
 
-unzip ml-latest.zip
+### 2. Rating Validation via Pearson Correlation
 
-hadoop fs -copyFromLocal ./ml-latest /user/[YOUR_NETID]_nyu_edu/target
+- Compared Jaccard-similar pairs with random user pairs
+- Found: **Movie-twins Pearson avg = 0.7885**, random avg = 0.1523
 
+### 3. Train/Validation/Test Splitting
 
-## What we would like you to build / do (all 5 deliverables are equally weighed)
+- User-wise splits preserving timestamp order
+- Filter: min 500 ratings/user
+- Split: 80% Train / 10% Val / 10% Test
 
-## Customer segmentation
+### 4. Popularity-Based Baseline Model
 
-1.  Customer segmentation relies on similarity, so we first want you to find the top 100 pairs of users ("movie twins") who have the most similar movie watching style. Note: For the sake of simplicity, you can operationalize "movie watching style" simply by the set of movies that was rated, regardless of the actual numerical ratings. We strongly recommend to do this with a minHash-based algorithm.
-2.  Validate your results from question 1 by checking whether the average correlation of the numerical ratings in the 100 pairs is different from (higher?) than 100 randomly picked pairs of users from the full dataset.
+- Top-100 movies globally ranked from training set
+- Evaluation on validation/test users using ranking metrics
+- **Test Precision\@100: 0.0729**, **NDCG\@100: 0.0936**
 
-## Movie recommendation
+### 5. ALS Collaborative Filtering
 
-3.  As a first step, you will need to partition the ratings data into training, validation, and test sets. We recommend writing a script do this in advance, and saving the partitioned data for future use.
-    This will reduce the complexity of your code down the line, and make it easier to generate alternative splits if you want to assess the stability of your implementation.
+- Grid search over rank, regParam, maxIter
+- Best config: `rank=100`, `regParam=0.05`, `maxIter=20`
+- **Test RMSE = 0.7345**, **NDCG\@100 = 0.0137**
 
-4.  Before implementing a sophisticated model, you should begin with a popularity baseline model as discussed in class. This should be simple enough to implement with some basic dataframe computations.
-    Evaluate your popularity baseline (see below) before moving on to the next step.
+## Technologies Used
 
-5.  Your recommendation model should use Spark's alternating least squares (ALS) method to learn latent factor representations for users and items.
-    Be sure to thoroughly read through the documentation on the [pyspark.ml.recommendation module](https://spark.apache.org/docs/3.0.1/ml-collaborative-filtering.html) before getting started.
-    This model has some hyper-parameters that you should tune to optimize performance on the validation set, notably: 
-      - the *rank* (dimension) of the latent factors, and
-      - the regularization parameter.
+- Python 3.x
+- Apache Spark (PySpark)
+- pandas, NumPy, scikit-learn
+- datasketch (for MinHash)
 
-### Evaluation
+## Installation
 
-Once you are able to make predictions—either from the popularity baseline or the latent factor model—you will need to evaluate accuracy on the validation and test data.
-Scores for validation and test should both be reported in your write-up.
-Evaluations should be based on predictions of the top 100 items for each user, and report the ranking metrics provided by spark.
-Refer to the [ranking metrics](https://spark.apache.org/docs/3.0.1/mllib-evaluation-metrics.html#ranking-systems) section of the Spark documentation for more details.
+Install dependencies:
 
-The choice of evaluation criteria for hyper-parameter tuning is up to you, as is the range of hyper-parameters you consider, but be sure to document your choices in the final report.
-As a general rule, you should explore ranges of each hyper-parameter that are sufficiently large to produce observable differences in your evaluation score.
+```bash
+pip install -r requirements.txt
+```
 
-If you like, you may also use additional software implementations of recommendation or ranking metric evaluations, but be sure to cite any additional software you use in the project.
+## Running the Pipelines
 
+### 1. Convert CSVs to Parquet
 
-### Using the cluster
+```bash
+python parquet_convertor.py
+```
 
-Please be considerate of your fellow classmates!
-The Dataproc cluster is a limited, shared resource. 
-Make sure that your code is properly implemented and works efficiently. 
-If too many people run inefficient code simultaneously, it can slow down the entire cluster for everyone.
+### 2. Segment Users
 
+```bash
+python customer_segmentation.py
+```
 
-## What to turn in
+### 3. Validate with Pearson
 
-In addition to all of your code, produce a final report (no more than 5 pages), describing your implementation, answer to questions and evaluation results.
-Your report should clearly identify the contributions of each member of your group. 
-If any additional software components were required in your project, your choices should be described and well motivated here.  
+(Part of `customer_segmentation.py`)
 
-Include a PDF of your final report through Brightspace.  Specifically, your final report should include the following details:
+### 4. Split Ratings
 
-- Link to your group's GitHub repository
-- List of top 100 most similar pairs (include a suitable estimate of their similarity for each pair), sorted by similarity
-- A comparison between the average pairwise correlations between these highly similar pair and randomly picked pairs
-- Documentation of how your train/validation splits were generated
-- Any additional pre-processing of the data that you decide to implement
-- Evaluation of popularity baseline
-- Documentation of latent factor model's hyper-parameters and validation
-- Evaluation of latent factor model
+```bash
+python split.py
+```
 
-Any additional software components that you use should be cited and documented with installation instructions.
+### 5. Baseline Recommender
 
-## Suggested Timeline
+```bash
+python popularity_model.py
+```
 
-It will be helpful to commit your work in progress to the repository.
-Toward this end, we recommend the following timeline to stay on track:
+### 6. ALS Recommender
 
-- [ ] 2025/04/21: data pre-processing, implementing the minHash algorithm
-- [ ] **2025/04/28**: validation with correlations, checkpoint submission with similarity results.
-- [ ] 2025/05/05: train/validation partitioning, popularity baseline model.
-- [ ] 2025/05/12: Working latent factor model implementation. Then scale up to the full dataset in the remaining week until the final due date
-- [ ] 2025/05/14: final project submission.  **NO EXTENSIONS ARE POSSIBLE PAST THIS DATE.** [this is the last day of the semester, 05/15 is commencement]
+```bash
+python als_model.py
+```
+
+## Evaluation Metrics
+
+| Model            | Precision\@100 | MAP\@100 | NDCG\@100 | RMSE   |
+| ---------------- | -------------- | -------- | --------- | ------ |
+| Popularity Model | 0.0729         | 0.0136   | 0.0936    | -      |
+| ALS Model        | 0.0119         | 0.0009   | 0.0137    | 0.7345 |
+
+## Contributions
+
+- **Kyeongmo Kang**: Train/Val/Test splitting, full report structuring
+- **Alexander Pegot-Ogier**: MinHashLSH + Pearson correlation
+- **Nikolas Prasinos**: Popularity model + ALS recommender
+
+## License
+
+Academic use only. NYU DSGA1004 Capstone, Spring 2025
+
+---
+
+For detailed results, see [`Report.pdf`](./Report.pdf) and [`results/`](./results/)
+
